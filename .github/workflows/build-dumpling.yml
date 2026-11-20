@@ -1,0 +1,42 @@
+name: Build OnePlus 5T (dumpling) kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_branch:
+        description: LineageOS kernel branch
+        default: lineage-22.2
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout KernelSU-Next
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # KernelSU version is computed from git history
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git clang bc bison flex libssl-dev zip python3 \
+            binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi
+
+      - name: Build kernel and AnyKernel3 zip
+        env:
+          KERNEL_BRANCH: ${{ github.event.inputs.kernel_branch }}
+        run: ./dumpling/build.sh
+
+      - name: Upload flashable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: KernelSU-Next-dumpling
+          path: dumpling/out/*.zip
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: dumpling/work/build.log
