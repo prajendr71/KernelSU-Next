@@ -42,8 +42,14 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 	ksu_handle_execveat_ksud(fd, filename_ptr,
 				 (struct user_arg_ptr *)argv,
 				 (struct user_arg_ptr *)envp, flags);
-	return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
-					    flags);
+	/*
+	 * argv here is a struct user_arg_ptr *, but sucompat (sulog) reads its
+	 * argv parameter as a kernel "const char *const *" array. Passing the
+	 * user_arg_ptr through makes sulog dereference a userspace pointer and
+	 * a bool as kernel strings, which can oops on su during early boot.
+	 */
+	return ksu_handle_execveat_sucompat(fd, filename_ptr, NULL, NULL,
+					    NULL);
 }
 
 // workaround for A12-5.10 kernel
