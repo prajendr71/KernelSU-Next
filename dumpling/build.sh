@@ -47,7 +47,13 @@ MAKE=(make O=out ARCH=arm64 CC=clang HOSTCC=gcc
       CROSS_COMPILE_ARM32=arm-linux-gnueabi-)
 "${MAKE[@]}" "$DEFCONFIG"
 grep -q "^CONFIG_KSU_MANUAL_HOOK=y" out/.config || { echo "CONFIG_KSU_MANUAL_HOOK not enabled"; exit 1; }
-"${MAKE[@]}" -j"$JOBS" 2>&1 | tee "$WORK/build.log"
+# Parallel builds of this 4.4 tree sometimes fail with a spurious
+# ".tmp_*.ver: No such file" linker error; simply re-running make fixes it.
+for attempt in 1 2 3; do
+	"${MAKE[@]}" -j"$JOBS" > >(tee "$WORK/build.log") 2>&1 && break
+	echo "[!] make failed (attempt $attempt), retrying..."
+	[ "$attempt" = 3 ] && { echo "[-] build failed, see $WORK/build.log"; exit 1; }
+done
 
 IMAGE=out/arch/arm64/boot/Image.gz-dtb
 [ -f "$IMAGE" ] || { echo "[-] $IMAGE not found, see $WORK/build.log"; exit 1; }

@@ -10,6 +10,11 @@
 #include <linux/slab.h>
 
 #include "adb_root.h"
+
+/* ALIGN_DOWN was added to <linux/kernel.h> in 4.16 */
+#ifndef ALIGN_DOWN
+#define ALIGN_DOWN(x, a) __ALIGN_KERNEL((x) - ((a) - 1), (a))
+#endif
 #include "arch.h"
 #include "policy/feature.h"
 #include "selinux/selinux.h"

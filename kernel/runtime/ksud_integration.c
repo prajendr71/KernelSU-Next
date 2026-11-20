@@ -493,7 +493,7 @@ append_ksu_rc:
 	if (ksu_rc_pos < ksu_rc_len) {
 		// copy_to_iter returns the number of copied bytes
 		append_count =
-			copy_to_iter(KERNEL_SU_RC + ksu_rc_pos, ksu_rc_len - ksu_rc_pos, to);
+			copy_to_iter((void *)(KERNEL_SU_RC + ksu_rc_pos), ksu_rc_len - ksu_rc_pos, to);
 		if (!append_count) {
 			pr_info("read_iter_proxy: append error, totally appended %ld\n",
 				ksu_rc_pos);
