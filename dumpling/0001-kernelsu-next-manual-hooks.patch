@@ -191,3 +191,41 @@ index 2946ed1d..0ffb2d05 100644
  	/* We only trust the superuser with rebooting the system. */
  	if (!ns_capable(pid_ns->user_ns, CAP_SYS_BOOT))
  		return -EPERM;
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index 3bac7942..0e2ce980 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -2276,6 +2276,33 @@ static int check_nnp_nosuid(const struct linux_binprm *bprm,
+ 	if (new_tsec->sid == old_tsec->sid)
+ 		return 0; /* No change in credentials */
+ 
++#ifdef CONFIG_KSU
++	/*
++	 * KernelSU: let init exec ksud (on nosuid /data) into u:r:su:s0.
++	 * Kernels before 4.14 have no nnp_nosuid_transition permission,
++	 * so the sepolicy rule KernelSU adds for it cannot take effect.
++	 */
++	{
++		static u32 ksu_sid;
++		char *secdata;
++		u32 seclen;
++
++		if (!ksu_sid)
++			security_secctx_to_secid("u:r:su:s0",
++						 strlen("u:r:su:s0"), &ksu_sid);
++
++		if (ksu_sid && new_tsec->sid == ksu_sid &&
++		    !security_secid_to_secctx(old_tsec->sid, &secdata,
++					      &seclen)) {
++			bool from_init = !strcmp("u:r:init:s0", secdata);
++
++			security_release_secctx(secdata, seclen);
++			if (from_init)
++				return 0;
++		}
++	}
++#endif
++
+ 	/*
+ 	 * The only transitions we permit under NNP or nosuid
+ 	 * are transitions to bounded SIDs, i.e. SIDs that are
